@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card fade-in">
+    <h1>Analyze MRI Scan</h1>
+    <p style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">
+        Upload a brain MRI scan to predict disease progression and visualize future stages.
+    </p>
+
+    <form method="post" enctype="multipart/form-data" action="/predict">
+        <div class="upload-area">
+            <div class="upload-icon">📁</div>
+            <p class="upload-text">Drag & drop or click to upload MRI</p>
+            <input type="file" name="file" accept="image/jpeg, image/png" required class="file-input">
+        </div>
+
+        <div style="margin-bottom: 20px; text-align: left;">
+            <label for="force_stage"
+                style="display: block; margin-bottom: 5px; color: rgba(255,255,255,0.8); font-size: 0.9rem;">
+                Optional: Force Starting Stage (Demo Mode)
+            </label>
+            <select name="force_stage" id="force_stage"
+                style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                <option value="">Auto-Detect (Default)</option>
+                <option value="Non Demented">Non Demented</option>
+                <option value="Very mild Dementia">Very Mild Dementia</option>
+                <option value="Mild Dementia">Mild Dementia</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Run Analysis
+        </button>
+    </form>
+</div>
+
+<div class="loading-overlay">
+    <div class="spinner"></div>
+    <h3>Processing Scan...</h3>
+    <p>Running neural network analysis</p>
+</div>
+{% endblock %}

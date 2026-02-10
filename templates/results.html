@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="fade-in" style="width: 100%;">
+    <div class="results-header">
+        <h1>Analysis Results</h1>
+        <p>Progression timeline prediction for the uploaded MRI scan.</p>
+    </div>
+
+    <div class="results-grid">
+        <!-- Original Image -->
+        <div class="result-card">
+            <div class="result-image-container">
+                {% if original_image_path %}
+                <img src="{{ url_for('static', filename=original_image_path) }}" alt="Original Image">
+                {% else %}
+                <div
+                    style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.5);">
+                    No Image</div>
+                {% endif %}
+            </div>
+            <div class="result-info">
+                <span class="stage-badge badge-original">{{ start_stage }}</span>
+                <h3 style="margin-top:10px; font-size:1.1rem;">Original Scan</h3>
+            </div>
+        </div>
+
+        <!-- Generated Images -->
+        {% if generated_images %}
+        {% for stage, path in generated_images.items() %}
+        <div class="result-card">
+            <div class="result-image-container">
+                <img src="{{ url_for('static', filename=path) }}" alt="Generated {{ stage }}">
+            </div>
+            <div class="result-info">
+                <span class="stage-badge badge-predicted">Predicted</span>
+                <h3 style="margin-top:10px; font-size:1.1rem;">{{ stage }}</h3>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <!-- If no progression, maybe show a message or just standard non-progression card? 
+                 For now, we handle it by just not processing the loop. 
+                 The python side passes an empty dict if no progression.
+            -->
+        {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div style="text-align: center; margin-top: 50px;">
+        <a href="/" class="btn btn-primary">Analyze Another Scan</a>
+    </div>
+</div>
+{% endblock %}
