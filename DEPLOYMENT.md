@@ -62,3 +62,12 @@ If you try to connect this GitHub repository directly to a service like Render o
 3.  The build fails (or the app crashes at runtime) because **the model files are missing**.
 
 To fix this for Git deployment, you would need to use **Git LFS (Large File Storage)** to track the model files, but this can use up your storage quota quickly. The Docker method above avoids this issues.
+
+## 🛑 Stopping the App
+
+-   **If running in the foreground** (you see the logs):
+    Press `Ctrl + C` in your terminal.
+
+-   **If running in the background** (detached mode `-d`):
+    1.  Find the container ID: `docker ps`
+    2.  Stop it: `docker stop <CONTAINER_ID>`

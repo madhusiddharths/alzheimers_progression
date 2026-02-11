@@ -13,11 +13,11 @@ CLASSIFIER_PATH = "../vgg19/vgg19_best_model.keras" # Relative to classifier mod
 GAN_IMAGE_SIZE = (256, 256)
 CLASSIFIER_IMAGE_SIZE = (224, 224)
 
-CLASSES = ['Non Demented', 'Very mild Dementia', 'Mild Dementia', 'Moderate Dementia']
-NON_DEMENTED = CLASSES[0]
-VERY_MILD_DEMENTED = CLASSES[1]
-MILD_DEMENTED = CLASSES[2]
-MODERATE_DEMENTED = CLASSES[3]
+CLASSES = ['Mild Dementia', 'Moderate Dementia', 'Non Demented', 'Very mild Dementia']
+MILD_DEMENTED = CLASSES[0]
+MODERATE_DEMENTED = CLASSES[1]
+NON_DEMENTED = CLASSES[2]
+VERY_MILD_DEMENTED = CLASSES[3]
 
 class Generator(nn.Module):
     def __init__(self):
