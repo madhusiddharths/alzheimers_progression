@@ -13,29 +13,33 @@ A deep learning application that analyzes MRI scans to detect Alzheimer's diseas
     -   Moderate Dementia
 -   **Progression Visualization**: Generates synthetic MRI images showing how the brain might look as the disease advances to subsequent stages.
 -   **User-Friendly Interface**: a web interface for uploading scans and viewing results.
+-   **Mac Optimized**: Native support for Mac GPU (Metal Performance Shaders) for accelerated training and inference.
 
 ## Technology Stack
 
 -   **Backend**: Flask (Python)
 -   **AI/ML**:
-    -   **Classification**: VGG19 (Transfer Learning) with TensorFlow/Keras.
-    -   **Generation**: Deep Convolutional GANs (DCGAN) with PyTorch.
+    -   **Classification**: **EfficientNetB4** (Transfer Learning) with **PyTorch**.
+    -   **Generation**: Deep Convolutional GANs (DCGAN) with **PyTorch**.
+    -   **Hardware Acceleration**: Apple Metal (MPS) support.
 -   **Frontend**: HTML5, CSS3, JavaScript.
 -   **Containerization**: Docker.
 
 ## Project Structure
 
 ```
-├── app.py                 # Main Flask application
-├── Dockerfile             # Docker configuration
-├── requirements.txt       # Python dependencies
+├── app.py                     # Main Flask application
+├── Dockerfile                 # Docker configuration
+├── requirements.txt           # Python dependencies
 ├── src/
-│   ├── pipeline.py        # Core logic for prediction and generation
+│   ├── pipeline.py            # Core logic for prediction and generation
 │   └── ...
-├── gans/                  # [Large File] PyTorch GAN Generator models
-├── vgg19/                 # [Large File] VGG19 Classification model
-├── templates/             # HTML templates
-└── static/                # CSS, JS, and generated images
+├── model_classifier/          # Classifier training script and model
+│   ├── train_classifier.py    # PyTorch training script
+│   └── efficientnet_b4_pytorch.pth  # Trained classifier model [Git LFS]
+├── gans/                      # [Large Files] PyTorch GAN Generator models
+├── templates/                 # HTML templates
+└── static/                    # CSS, JS, and generated images
 ```
 
 ## Setup & Installation
@@ -44,23 +48,17 @@ A deep learning application that analyzes MRI scans to detect Alzheimer's diseas
 
 -   Python 3.9+
 -   Docker (optional, recommended for deployment)
+-   [Git LFS](https://git-lfs.github.com/) (required to download model weights)
 
 ### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/madhusiddharths/alzheimers_progression.git
 cd alzheimers_progression
+git lfs pull  # Download large model files
 ```
 
-### 2. Download Model Files
-> [!IMPORTANT]
-> Because the model files are large, they are **NOT** stored in this GitHub repository. You must have the `vgg19/` and `gans/` directories populated locally.
-
-Ensure your directory structure looks like this:
--   `vgg19/vgg19_best_model.keras`
--   `gans/madhu/generator.pth` (and other stage checkpoints)
-
-### 3. Run Locally (Python)
+### 2. Run Locally (Python)
 
 1.  Create a virtual environment:
     ```bash
@@ -77,9 +75,21 @@ Ensure your directory structure looks like this:
     ```
 4.  Open `http://127.0.0.1:5000` in your browser.
 
-### 4. Run with Docker
+### 3. Run with Docker
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions on building and running the Docker container.
+Build the container:
+```bash
+docker build -t alzheimers-classifier .
+```
+
+Run the container:
+```bash
+docker run -p 5000:5000 alzheimers-classifier
+```
+*Note: If port 5000 is in use (common on macOS AirPlay), run on port 5001:*
+```bash
+docker run -p 5001:5000 alzheimers-classifier
+```
 
 ## Data Sources
 
