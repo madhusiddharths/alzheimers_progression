@@ -1,17 +1,16 @@
 import torch
 import torch.nn as nn
-from torchvision import transforms
+from torchvision import transforms, models
 from PIL import Image
 import os
 import numpy as np
-import tensorflow as tf
 from typing import Dict, Union
 
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 CHECKPOINT_DIR = "../gans/madhu/" # Relative to GAN generators
-CLASSIFIER_PATH = "../vgg19/vgg19_best_model.keras" # Relative to classifier model
+CLASSIFIER_PATH = "../model_classifier/efficientnet_b4_pytorch.pth" # Relative to classifier model
 GAN_IMAGE_SIZE = (256, 256)
-CLASSIFIER_IMAGE_SIZE = (224, 224)
+CLASSIFIER_IMAGE_SIZE = (256, 256)
 
 CLASSES = ['Mild Dementia', 'Moderate Dementia', 'Non Demented', 'Very mild Dementia']
 MILD_DEMENTED = CLASSES[0]
@@ -44,11 +43,18 @@ class Generator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
+# Transforms
 gan_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.Resize(GAN_IMAGE_SIZE),
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
+])
+
+classifier_transform = transforms.Compose([
+    transforms.Resize(CLASSIFIER_IMAGE_SIZE),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
 def load_and_preprocess_gan_image(image_path: str) -> torch.Tensor:
@@ -70,9 +76,26 @@ def load_classifier_model():
             script_dir = os.path.dirname(__file__)
             abs_classifier_path = os.path.abspath(os.path.join(script_dir, CLASSIFIER_PATH))
             if not os.path.exists(abs_classifier_path):
-                raise FileNotFoundError(f"Classifier model not found at {abs_classifier_path}")
-            classifier_model = tf.keras.models.load_model(abs_classifier_path)
-            print("Classifier model loaded.") # More concise
+                # Don't error immediately, maybe training hasn't run.
+                # But warn.
+                print(f"WARNING: Classifier model not found at {abs_classifier_path}")
+                return None
+            
+            # Rebuild model structure
+            print("Loading PyTorch EfficientNetB4...")
+            weights = models.EfficientNet_B4_Weights.DEFAULT
+            model = models.efficientnet_b4(weights=weights)
+            num_ftrs = model.classifier[1].in_features
+            model.classifier[1] = nn.Linear(num_ftrs, len(CLASSES))
+            
+            # Load weights
+            state_dict = torch.load(abs_classifier_path, map_location=DEVICE, weights_only=True)
+            model.load_state_dict(state_dict)
+            model.to(DEVICE)
+            model.eval()
+            
+            classifier_model = model
+            print("Classifier model loaded.") 
         except Exception as e:
             print(f"Error loading classifier model: {e}")
             classifier_model = None 
@@ -85,31 +108,24 @@ load_classifier_model()
 
 def identify_stage(image_path: str) -> str | None:
     """
-    Identifies the Alzheimer's stage of an image using the VGG19 classifier.
+    Identifies the Alzheimer's stage of an image using the PyTorch classifier.
     Input: Path to the image file (str).
     Output: String representing the identified stage, or None on error.
     """
     model = load_classifier_model()
     if model is None:
-        print("ERROR: Classifier model not loaded.") # Emphasize error
+        print("ERROR: Classifier model not loaded.") 
         return None
 
     try:
         img = Image.open(image_path).convert('RGB')
+        img_tensor = classifier_transform(img).unsqueeze(0).to(DEVICE)
 
-        img = img.resize((CLASSIFIER_IMAGE_SIZE[0], CLASSIFIER_IMAGE_SIZE[1]))
-
-        img_array = np.array(img)
-
-        img_preprocessed = tf.keras.applications.vgg19.preprocess_input(img_array)
-
-        img_batch = np.expand_dims(img_preprocessed, axis=0)
-
-        predictions = model(img_batch, training=False)
-
-        predicted_class_index = np.argmax(predictions[0])
-        predicted_class_label = CLASSES[predicted_class_index]
-
+        with torch.no_grad():
+            outputs = model(img_tensor)
+            _, predicted_idx = torch.max(outputs, 1)
+        
+        predicted_class_label = CLASSES[predicted_idx.item()]
         return predicted_class_label
 
     except Exception as e:
@@ -159,15 +175,20 @@ def predict_full_progression(initial_image_path: str, start_stage_override: str 
         print(f"Already at final stage ({MODERATE_DEMENTED}).")
         return results 
 
+    # Define the correct disease progression order
+    PROGRESSION_ORDER = [NON_DEMENTED, VERY_MILD_DEMENTED, MILD_DEMENTED, MODERATE_DEMENTED]
+
     try:
-        start_index = CLASSES.index(start_stage)
+        # Find where we are starting in the progression
+        start_index = PROGRESSION_ORDER.index(start_stage)
     except ValueError:
-        print(f"ERROR: Stage '{start_stage}' not in CLASSES list.") 
+        print(f"ERROR: Stage '{start_stage}' not found in PROGRESSION_ORDER list.") 
         return {}
 
-    for i in range(start_index, len(CLASSES) - 1):
-        current_expected_stage = CLASSES[i]
-        next_expected_stage = CLASSES[i+1]
+    # Iterate through the remaining stages in the progression
+    for i in range(start_index, len(PROGRESSION_ORDER) - 1):
+        current_expected_stage = PROGRESSION_ORDER[i]
+        next_expected_stage = PROGRESSION_ORDER[i+1]
         print(f"\n--- Generating: {current_expected_stage} -> {next_expected_stage} ---") 
 
         generator_path_key = generator_paths.get(current_expected_stage)
@@ -215,6 +236,9 @@ if __name__ == '__main__':
     
     
     image_to_process = "/Users/thuptenwangpo/Documents/GitHub/CS584-Project/data/source_2/Mild Dementia/OAS1_0028_MR1_mpr-1_117.jpg" 
+    
+    # Simple test check
+    print(f"Using Device: {DEVICE}")
 
     if os.path.exists(image_to_process):
         print(f"Running prediction for: {image_to_process}") 
@@ -234,8 +258,6 @@ if __name__ == '__main__':
                     output_filename = os.path.join(output_dir, f"predicted_{filename_stage}.png")
                     save_image(image_tensor.cpu() * 0.5 + 0.5, output_filename)
                     print(f"  Saved: {output_filename}")
-                except ImportError:
-                    print("    ERROR: Install torchvision (`pip install torchvision`) to save images.")
                 except Exception as e:
                     print(f"    ERROR saving image for stage {stage_name}: {e}")
         else:

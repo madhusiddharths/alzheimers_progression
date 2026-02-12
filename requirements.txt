@@ -25,4 +25,3 @@ flask
 gunicorn
 torch
 torchvision
-tensorflow
