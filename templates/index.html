@@ -32,7 +32,190 @@
             Run Analysis
         </button>
     </form>
+
+    <div class="samples-section" style="margin-top: 30px;">
+        <h3 style="font-size: 1rem; color: rgba(255,255,255,0.7); margin-bottom: 15px;">Or use a sample image (Tap,
+            Click, or Drag):</h3>
+
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <!-- Non Demented -->
+            <div>
+                <h4 style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-bottom: 5px;">Non Demented</h4>
+                <div class="samples-grid">
+                    {% for i in range(109, 114) %}
+                    <img src="{{ url_for('static', filename='samples/OAS1_0001_MR1_mpr-1_' ~ i ~ '.jpg') }}"
+                        alt="Non Demented" title="Non Demented Sample {{ i }}" class="sample-img" draggable="true"
+                        onclick="useSample(this.src, 'Non_Demented_{{ i }}.jpg')">
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Very Mild -->
+            <div>
+                <h4 style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-bottom: 5px;">Very Mild Dementia</h4>
+                <div class="samples-grid">
+                    {% for i in range(124, 129) %}
+                    <img src="{{ url_for('static', filename='samples/OAS1_0003_MR1_mpr-1_' ~ i ~ '.jpg') }}"
+                        alt="Very Mild" title="Very Mild Sample {{ i }}" class="sample-img" draggable="true"
+                        onclick="useSample(this.src, 'Very_Mild_{{ i }}.jpg')">
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Mild -->
+            <div>
+                <h4 style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-bottom: 5px;">Mild Dementia</h4>
+                <div class="samples-grid">
+                    {% for i in range(100, 105) %}
+                    <img src="{{ url_for('static', filename='samples/OAS1_0028_MR1_mpr-1_' ~ i ~ '.jpg') }}" alt="Mild"
+                        title="Mild Sample {{ i }}" class="sample-img" draggable="true"
+                        onclick="useSample(this.src, 'Mild_{{ i }}.jpg')">
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Moderate -->
+            <div>
+                <h4 style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-bottom: 5px;">Moderate Dementia</h4>
+                <div class="samples-grid">
+                    {% for i in range(100, 105) %}
+                    <img src="{{ url_for('static', filename='samples/OAS1_0308_MR1_mpr-1_' ~ i ~ '.jpg') }}"
+                        alt="Moderate" title="Moderate Sample {{ i }}" class="sample-img" draggable="true"
+                        onclick="useSample(this.src, 'Moderate_{{ i }}.jpg')">
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .samples-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .samples-grid {
+            grid-template-columns: repeat(3, 1fr);
+            /* 3 cols on tablets/large phones */
+        }
+    }
+
+    @media (max-width: 480px) {
+        .samples-grid {
+            grid-template-columns: repeat(2, 1fr);
+            /* 2 cols on small phones */
+        }
+    }
+
+    .sample-img {
+        width: 100%;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+        opacity: 0.8;
+    }
+
+    .sample-img:hover {
+        opacity: 1;
+        transform: scale(1.05);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .sample-img.selected {
+        border-color: #4CAF50;
+        opacity: 1;
+        box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    }
+</style>
+
+<script>
+    // --- CLICK Handler ---
+    async function useSample(imageUrl, filename) {
+        try {
+            // Fetch the image
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+
+            // Create a File object
+            const file = new File([blob], filename, { type: 'image/jpeg' });
+
+            // Create a DataTransfer to assign to input
+            const container = new DataTransfer();
+            container.items.add(file);
+
+            // Assign to file input
+            const fileInput = document.querySelector('input[type="file"]');
+            fileInput.files = container.files;
+
+            // Visual feedback
+            document.querySelectorAll('.sample-img').forEach(img => img.classList.remove('selected'));
+            // Find the image that was clicked (using src match since 'this' might not be passed if called from drop)
+            const clickedImg = Array.from(document.querySelectorAll('.sample-img')).find(img => img.src === imageUrl);
+            if (clickedImg) clickedImg.classList.add('selected');
+
+            // Update upload text
+            const uploadText = document.querySelector('.upload-text');
+            uploadText.innerHTML = `Selected sample: <strong>${filename}</strong>`;
+
+        } catch (e) {
+            console.error("Error loading sample:", e);
+        }
+    }
+
+    // --- DRAG AND DROP Logic ---
+    const uploadArea = document.querySelector('.upload-area');
+
+    // Enable Dragging on Samples
+    document.querySelectorAll('.sample-img').forEach(img => {
+        img.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', img.src); // Pass URL
+            e.dataTransfer.setData('application/x-sample-filename', img.title.replace(/ /g, '_') + '.jpg'); // Pass Filename
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+    });
+
+    // Handle Drag Over (Visual feedback)
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault(); // Necessary to allow dropping
+        uploadArea.style.borderColor = '#4CAF50';
+        uploadArea.style.backgroundColor = 'rgba(76, 175, 80, 0.1)';
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        uploadArea.style.borderColor = '';
+        uploadArea.style.backgroundColor = '';
+    });
+
+    // Handle Drop
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = '';
+        uploadArea.style.backgroundColor = '';
+
+        const imageUrl = e.dataTransfer.getData('text/plain');
+        const filename = e.dataTransfer.getData('application/x-sample-filename');
+
+        // Check if dropped item is one of our samples
+        if (imageUrl && filename && imageUrl.includes('/static/samples/')) {
+            // It is a sample! Use the same logic as click
+            useSample(imageUrl, filename);
+        } else {
+            // It might be a file from desktop (default browser handling for input[type=file] usually handles this, 
+            // but since we preventedDefault, we must manually assign if files present)
+            if (e.dataTransfer.files.length > 0) {
+                const fileInput = document.querySelector('input[type="file"]');
+                fileInput.files = e.dataTransfer.files;
+                const uploadText = document.querySelector('.upload-text');
+                uploadText.innerHTML = `Selected file: <strong>${e.dataTransfer.files[0].name}</strong>`;
+            }
+        }
+    });
+</script>
 
 <div class="loading-overlay">
     <div class="spinner"></div>

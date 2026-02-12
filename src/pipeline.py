@@ -83,8 +83,8 @@ def load_classifier_model():
             
             # Rebuild model structure
             print("Loading PyTorch EfficientNetB4...")
-            weights = models.EfficientNet_B4_Weights.DEFAULT
-            model = models.efficientnet_b4(weights=weights)
+            # Use weights=None to avoid downloading ImageNet weights (we overwrite them anyway)
+            model = models.efficientnet_b4(weights=None)
             num_ftrs = model.classifier[1].in_features
             model.classifier[1] = nn.Linear(num_ftrs, len(CLASSES))
             

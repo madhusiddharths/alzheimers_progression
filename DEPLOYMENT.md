@@ -1,73 +1,62 @@
 # Deployment Guide
 
-This application uses large AI model files that are **excluded from Git** to keep the repository lightweight. This makes deployment slightly different from standard web apps.
+This application is containerized with Docker, making it easy to deploy to any cloud provider that supports Docker containers (Render, Railway, AWS ECS, Google Cloud Run, Azure App Service, etc.).
 
-## 🐳 Docker Deployment (Recommended)
+## Method 1: Deploy via Docker Hub (Recommended)
 
-The most reliable way to deploy is to build a Docker image **locally** (where you have the model files) and then push that image to a container registry (like Docker Hub).
+Since this project contains large model files, building the Docker image locally and pushing it to Docker Hub is often more reliable than letting a cloud provider build it from Git (which might timeout ensuring Git LFS downloads).
 
-### Prerequisite: Large Files
-Ensure you have the following directories populated locally:
--   `vgg19/` containing `vgg19_best_model.keras`
--   `gans/` containing your `.pth` generator checkpoints
+### 1. Prerequisites
+-   [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+-   A [Docker Hub](https://hub.docker.com/) account (free).
 
-### Step 1: Build the Image
+### 2. Build and Push the Image
 
-Run this command in the project root. This copies your local code **and** the model files into the image.
-
-```bash
-docker build -t alzheimers-app .
-# This might take a few minutes as it installs TensorFlow and PyTorch
-```
-
-### Step 2: Test Locally
-
-Verify the container works before deploying:
-
-```bash
-docker run -p 5000:5000 alzheimers-app
-```
-Visit `http://localhost:5000`.
-
-### Step 3: Push to Registry (e.g., Docker Hub)
-
-1.  Log in to Docker Hub:
+1.  **Log in to Docker Hub** in your terminal:
     ```bash
     docker login
     ```
-2.  Tag the image:
+
+2.  **Build the image** (replace `youralgorithm` with your Docker Hub username):
     ```bash
-    docker tag alzheimers-app <your-dockerhub-username>/alzheimers-app:latest
-    ```
-3.  Push the image:
-    ```bash
-    docker push <your-dockerhub-username>/alzheimers-app:latest
+    # IMPORTANT: Use linux/amd64 platform for cloud compatibility (most servers are x86, not ARM like M1 Macs)
+    docker build --platform linux/amd64 -t yourusername/alzheimers-classifier:v1 .
     ```
 
-### Step 4: Deploy to Cloud (e.g., Render, Railway, AWS)
+3.  **Push the image**:
+    ```bash
+    docker push yourusername/alzheimers-classifier:v1
+    ```
 
-On your cloud provider:
-1.  Select **"Deploy from Docker Hub"** or **"Container Registry"**.
-2.  Enter the image name: `<your-dockerhub-username>/alzheimers-app:latest`.
-3.  Set the **Internal Port** to `5000`.
-4.  Deploy!
+### 3. Deploy to Cloud (Example: Render.com)
+
+1.  Create a **New Web Service** on [Render](https://render.com/).
+2.  Select **"Deploy an existing image from a registry"**.
+3.  Enter your image URL: `yourusername/alzheimers-classifier:v1`
+4.  Render will pull the image and start it.
+    -   **Port**: The app runs on port `5000`. Render should detect this, or you can set the `PORT` environment variable to `5000`.
+    -   **RAM**: This app loads large models. Select a plan with at least **2GB-4GB RAM**.
 
 ---
 
-## ☁️ Why Git Deployment Fails
+## Method 2: Deploy to a Virtual Machine (AWS EC2 / DigitalOcean)
 
-If you try to connect this GitHub repository directly to a service like Render or Heroku:
-1.  The service clones the repo.
-2.  It sees `.gitignore` excludes `vgg19/` and `gans/`.
-3.  The build fails (or the app crashes at runtime) because **the model files are missing**.
+If you have a Linux server (Ubuntu/Debian) with Docker installed:
 
-To fix this for Git deployment, you would need to use **Git LFS (Large File Storage)** to track the model files, but this can use up your storage quota quickly. The Docker method above avoids this issues.
+1.  **SSH into your server**.
+2.  **Pull the image**:
+    ```bash
+    docker pull yourusername/alzheimers-classifier:v1
+    ```
+3.  **Run the container**:
+    ```bash
+    docker run -d -p 80:5000 --restart always --name alzheimers-app yourusername/alzheimers-classifier:v1
+    ```
+    (This runs the app in the background, mapping server port 80 to container port 5000).
 
-## 🛑 Stopping the App
+---
 
--   **If running in the foreground** (you see the logs):
-    Press `Ctrl + C` in your terminal.
+## Troubleshooting
 
--   **If running in the background** (detached mode `-d`):
-    1.  Find the container ID: `docker ps`
-    2.  Stop it: `docker stop <CONTAINER_ID>`
+-   **Memory Errors**: If the app crashes on startup, the server likely ran out of RAM loading EfficientNet or the Generator models. Upgrade to a larger instance type.
+-   **Platform Errors**: If you see "exec format error", you likely built the Docker image on an M1/M2 Mac without specifying `--platform linux/amd64`. Re-build using the command in Method 1.
