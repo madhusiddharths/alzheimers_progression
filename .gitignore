@@ -21,3 +21,6 @@ data/
 
 # User specific
 vgg19/
+
+# MLflow
+mlruns/

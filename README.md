@@ -22,6 +22,7 @@ A deep learning application that analyzes MRI scans to detect Alzheimer's diseas
     -   **Classification**: **EfficientNetB4** (Transfer Learning) with **PyTorch**.
     -   **Generation**: Deep Convolutional GANs (DCGAN) with **PyTorch**.
     -   **Hardware Acceleration**: Apple Metal (MPS) support.
+    -   **Experiment Tracking**: **MLflow** for metrics, parameters, and model registry.
 -   **Frontend**: HTML5, CSS3, JavaScript.
 -   **Containerization**: Docker.
 
@@ -36,6 +37,7 @@ A deep learning application that analyzes MRI scans to detect Alzheimer's diseas
 │   └── ...
 ├── model_classifier/          # Classifier training script and model
 │   ├── train_classifier.py    # PyTorch training script
+│   ├── mlruns/                # MLflow tracking database
 │   └── efficientnet_b4_pytorch.pth  # Trained classifier model [Git LFS]
 ├── gans/                      # [Large Files] PyTorch GAN Generator models
 ├── templates/                 # HTML templates
@@ -90,6 +92,26 @@ docker run -p 5000:5000 alzheimers-classifier
 ```bash
 docker run -p 5001:5000 alzheimers-classifier
 ```
+
+### 4. MLflow Experiment Tracking
+
+The project uses MLflow to track model training metrics (loss, accuracy), hyperparameters, and manage saved models.
+
+1.  **Run a Training Experiment:**
+    Navigate to the `model_classifier` directory and run the training script with adjustable hyperparameters:
+    ```bash
+    cd model_classifier
+    python train_classifier.py --batch-size 32 --lr-head 1e-3 --epochs-head 10 --epochs-finetune 10
+    ```
+    *(Note: Add the `--fast-dev-run` flag to run a quick test on just 200 images to verify your MLflow setup).*
+
+2.  **View the Dashboard:**
+    Start the MLflow UI from the same directory where experiments were run:
+    ```bash
+    cd model_classifier
+    mlflow ui --port 8080
+    ```
+    Open `http://127.0.0.1:8080` in your web browser to compare runs, metrics, and models.
 
 ## Data Sources
 
