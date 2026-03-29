@@ -23,5 +23,3 @@ tqdm==4.67.1
 tzdata==2025.1
 flask
 gunicorn
-torch
-torchvision

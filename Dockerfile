@@ -16,6 +16,9 @@ COPY . /app
 # Ensure model_classifier and its contents are present
 # They are copied by `COPY . /app`
 
+# Install CPU-only PyTorch (much smaller image & memory usage)
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -27,5 +30,5 @@ ENV FLASK_APP=app.py
 ENV FLASK_run_host=0.0.0.0
 
 # Run app.py when the container launches
-# CMD ["flask", "run", "--host=0.0.0.0"]
-CMD gunicorn --bind 0.0.0.0:${PORT:-5000} app:app
+# Use 1 worker to save memory, and increase timeout for model loading
+CMD gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 1 --timeout 120 app:app
