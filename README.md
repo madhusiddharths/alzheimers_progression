@@ -1,8 +1,10 @@
 # Alzheimer's Disease Progression Analysis & Prediction
 
-A deep learning application that analyzes MRI scans to detect Alzheimer's disease stages and generates visual progressions of the disease using Generative Adversarial Networks (GANs).
+A deep learning application that analyzes MRI scans to detect Alzheimer's disease stages and generates visual progressions of the disease using Generative Adversarial Networks (GANs). The EfficientNetB4 classifier reaches **98% accuracy and 0.98 macro-F1** across four stages on 86,437 OASIS MRI slices; the ROI-aware GAN discriminator improved FID from 39.99 to 30.94 (~23%).
 
-![Project Banner](static/img/banner_placeholder.png) <!-- Ideally add a screenshot here -->
+**[▶ Try the live demo](https://alzheimers-classifier-v1.onrender.com)** *(free-tier host — first load may take ~30s to wake)*
+
+![NeuroProgression demo](static/img/neuroprogression_demo.png)
 
 ## Features
 
